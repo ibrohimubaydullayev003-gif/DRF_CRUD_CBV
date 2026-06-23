@@ -4,95 +4,92 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from .serializer import CarSerializers
 from .models import Car
-from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 
 
 
 
-class list_create_car(APIView):
-    def post(self, request):
+@api_view(['POST', "GET"])
+def list_create_car(request):
+    if request.method == 'POST':
         serializer = CarSerializers(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        return Response({
-            'msg': 'Car create',
-            'status': status.HTTP_201_CREATED,
-            'car': serializer.data
-        })
-
-    def get(self, request):
+        if serializer.is_valid():
+            serializer.save()
+        
+            return Response({
+                'msg': 'Created',
+                'status': status.HTTP_201_CREATED,
+                'data': serializer.data
+            })
+            
+        raise ValidationError({
+                'error': serializer.errors,
+                'status': status.HTTP_400_BAD_REQUEST
+                }) 
+    elif request.method == 'GET':
         car = Car.objects.all()
         serializer = CarSerializers(car, many=True)
-
+        
         return Response({
-            'msg': 'Car list',
             'count': car.count(),
+            'msg': 'list',
             'status': status.HTTP_200_OK,
-            'list': serializer.data
+            'data': serializer.data
         })
 
-
-class update_delete_detail_car(APIView):
-
-    def get_object(self, pk):
+@api_view(['PUT', 'PATCH',  "DELETE", 'GET'])
+def update_delete_detail_car(request, pk):
+    
+    def get_object():
         car = Car.objects.filter(pk=pk).first()
+    
         if not car:
-            raise ValidationError({'msg': "Car not found", "status": status.HTTP_204_NO_CONTENT})
-
+            raise ValidationError({'msg': 'car not found', 'status': status.HTTP_400_BAD_REQUEST})
         return car
-
-    def get(self, request, pk):
-        car = self.get_object(pk)
-        serializer = CarSerializers(car)
-
+        
+    
+    if request.method == 'GET':
+        car = get_object()
+        serialzier = CarSerializers(car)
         return Response({
-            'msg': "Car detial",
-            "status": status.HTTP_200_OK,
-            "car": serializer.data
+            'msg': 'detail',
+            'status': status.HTTP_200_OK,
+            'data': serialzier.data
         })
-
-    def delete(self, request, pk):
-        car = self.get_object(pk)
+        
+    elif request.method == 'DELETE':
+        car = get_object()
         car.delete()
-
         return Response({
-            'msg': "Car delete",
-            "status": status.HTTP_204_NO_CONTENT
-        })
-
-    def put(self, request, pk):
-        car = self.get_object(pk)
+            'msg': 'deleted',
+            'status': status.HTTP_204_NO_CONTENT,
+        }) 
+        
+    elif request.method == 'PUT':
+        car = get_object()
+        if not car:
+            raise ValidationError({'msg': 'car not found', 'status': status.HTTP_400_BAD_REQUEST})
         serializer = CarSerializers(instance=car, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-
         return Response({
-            "msg": "Car update put",
-            "status": status.HTTP_200_OK,
-            "car": serializer.data
+            'msg': 'Updated',
+            'status': status.HTTP_200_OK,
+            'data': serializer.data
         })
-
-    def patch(self, request, pk):
-        car = self.get_object(pk)
+        
+    elif request.method == 'PATCH':
+        car = get_object
+        if not car:
+            raise ValidationError({'msg': 'car not found', 'status': status.HTTP_400_BAD_REQUEST})
         serializer = CarSerializers(instance=car, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({
-            "msg": "Car update patch",
-            "status": status.HTTP_200_OK,
-            "car": serializer.data
+            'msg': 'Updated',
+            'status': status.HTTP_200_OK,
+            'data': serializer.data
         })
-
-
-
-
-
-
-
-
-
-
 
 
 
